@@ -1,6 +1,0 @@
-from distutils.core import setup
-
-setup(name='TemplateScanners',
-      version='${PACKAGE_VERSION}',
-      package_dir={ '': '${CMAKE_CURRENT_SOURCE_DIR}' },
-      packages=['TemplateScanners'])

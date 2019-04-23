@@ -1,9 +1,5 @@
-//
-// Created by byrdofafeather on 2/7/19.
-//
-
 #include <utility>
-#include <bits/stdc++.h>
+#include <random>
 #include <map>
 #include <cassert>
 #include <opencv2/core/core.hpp>
@@ -195,7 +191,7 @@ public:
         std::deque<std::future<double>> scans;
         for (cv::Mat currentImage : templatesToMatch) {
             std::future<double> scan = std::async(&TemplateScanner::match_template, *this, image, currentImage,
-                    cv::TM_CCOEFF_NORMED);
+                    "None", 0, cv::TM_CCOEFF_NORMED);
             scans.push_front(std::move(scan));
         }
 
