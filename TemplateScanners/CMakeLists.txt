@@ -15,7 +15,7 @@ include_directories(${Python3_INCLUDE_DIRS})
 #add_executable(TemplateScanners main.cpp TemplateScanners.cpp)
 #target_link_libraries( TemplateScanners ${OpenCV_LIBS} ${Boost_LIBRARIES} -lboost_python3 ${Python_LIBRARIES} -lpthread)
 add_library(templatescannersbeta SHARED TemplateScanners.cpp)
-target_link_libraries( templatescannersbeta ${OpenCV_LIBS} ${Boost_LIBRARIES} -lboost_python3 ${Python_LIBRARIES} -lpthread) # link OpenCV libraries , hightgui.so not found by cmake so this hack
+target_link_libraries( templatescannersbeta ${OpenCV_LIBS} ${Boost_LIBRARIES} -lboost_python3 ${Python_LIBRARIES} -lpthread)
 
 IF(MSVC)
     set_target_properties(
@@ -26,7 +26,7 @@ IF(MSVC)
             OUTPUT_NAME templatescanners
             LINKER_LANGUAGE C
             LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin  # only needed on windows
+            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
 
 ELSE()
@@ -37,6 +37,6 @@ ELSE()
             OUTPUT_NAME templatescannersbeta
             LINKER_LANGUAGE C
             LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin  # only needed on windows
+            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
 ENDIF()
