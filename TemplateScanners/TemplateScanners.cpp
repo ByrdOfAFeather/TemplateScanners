@@ -3,7 +3,7 @@
 //
 
 #include <utility>
-#include <bits/stdc++.h>
+ #include <bits/stdc++.h>
 #include <map>
 #include <cassert>
 #include <opencv2/core/core.hpp>
@@ -12,6 +12,10 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <boost/python.hpp>
 #include <Python.h>
+#include <string>
+#include <deque>
+#include <future>
+
 
 using namespace std;
 using namespace cv;
@@ -70,13 +74,8 @@ public:
                 cv::Mat loadedImage = imread(currentPath, cv::IMREAD_COLOR);
                 if (loadedImage.empty()) { cout << "FAILED TO LOAD IMAGE "; cout << currentPath << endl;}
 
-                // Gets the reversed image
-                cv::Mat reversedImage;
-                cv::flip(loadedImage, reversedImage, 1);
-
                 std::deque<cv::Mat> images = returnMap[currentDescriptor];
                 images.push_front(loadedImage);
-                images.push_front(reversedImage);
                 returnMap[currentDescriptor] = images;
             }
         }
@@ -138,9 +137,74 @@ public:
         else { return ""; }
     }
 
+    std::map<std::string, double> get_best_prob_for_templates(cv::Mat image, std::deque<cv::Mat> templatesToMatch,
+            std::string forDescriptor) {
+        std::deque<std::future<double>> scans;
+        for (cv::Mat currentImage : templatesToMatch) {
+            std::future<double> scan = std::async(&TemplateScanner::match_template, *this, image, currentImage,
+                    cv::TM_CCOEFF_NORMED);
+            scans.push_front(std::move(scan));
+        }
+
+        double maxScan = 0;
+        for (std::future<double> &finishedScans : scans) {
+            double currentScan = finishedScans.get();
+            if (currentScan > templateThreshold) {
+                if (currentScan > maxScan) {
+                    maxScan = currentScan;
+                }
+            }
+        }
+
+        std::map<std::string, double> returnMap;
+        returnMap[forDescriptor] = maxScan;
+        return returnMap;
+    }
+
+    std::string get_best_match_multithread(cv::Mat image) {
+        std::deque<std::future<std::map<std::string, double>>> matches;
+        for (auto const& currentValues : templateMats) {
+            std::string currentDescriptor = currentValues.first;
+            std::deque<cv::Mat> currentImages = currentValues.second;
+
+            std::future<std::map<std::string, double>> currentPromise = std::async(&TemplateScanner::get_best_prob_for_templates, *this,
+                    image, currentImages, currentDescriptor);
+
+            matches.push_front(std::move(currentPromise));
+        }
+
+        std::string bestMatch = "";
+        double bestMatchValue = 0;
+        for (std::future<std::map<std::string, double>> &match : matches) {
+            std::map<std::string, double> currentMatch = match.get();
+            for (auto const &currentVal : currentMatch) {
+                if (currentVal.second > bestMatchValue) {
+					bestMatchValue = currentVal.second;
+                    bestMatch = currentVal.first;
+                }
+            }
+        }
+        return bestMatch;
+    }
+
     std::string scan(const cv::Mat &image) {
         std::string currentMaxDescriptor = get_best_match(image);
         return currentMaxDescriptor;
+    }
+
+    std::string multithreaded_scan(const cv::Mat &image) {
+        std::string currentMaxDescriptor = get_best_match_multithread(image);
+        return currentMaxDescriptor;
+    }
+
+    boost::python::str multithreadedScanPython(const boost::python::str imagePath) {
+        cv::Mat image;
+        std::string cPath = boost::python::extract<std::string>(imagePath);
+        image = cv::imread(cPath);
+        assert(!image.empty());
+        std::string currentMaxDescriptor = get_best_match_multithread(image);
+        boost::python::str returnValue(currentMaxDescriptor);
+        return returnValue;
     }
 
     boost::python::str scanPython(const boost::python::str imagePath) {
@@ -253,7 +317,6 @@ public:
         while (frame_count > divisor * frameSections) {
             VideoScannerThreaded currentVideoScanner(templates, videoPath, currentFrameStart, currentFrameEnd,
                                                      threshold);
-            std::promise<std::deque<Timestamp>> currentReturnPromise;
             std::future<std::deque<Timestamp>> currentPromisedFuture = std::async(&VideoScannerThreaded::get_timestamps,
                     currentVideoScanner);
             futures.push_front(std::move(currentPromisedFuture));
@@ -321,25 +384,78 @@ public:
 
 
 int main() {
-    // Build Test Map
-    DescriptorToTemplatesMap testMap;
-    std::deque<std::string> testImagePaths;
-    testImagePaths.push_front("0.png");
-    testMap["Jump"] = testImagePaths;
+//    DescriptorToTemplatesMap testMap;
+//    double thresh = .5;
+//    std::deque<std::string> testValue;
+//    testValue.push_front("testfiles/accept_other_dragon_ball.png");
+//    testMap["accept_other_dragon_ball"] = testValue;
+//
+//    std::deque<std::string> testValue2;
+//    testValue2.push_front("testfiles/baba.png");
+//    testMap["baba"] = testValue2;
+//
+//    std::deque<std::string> testValue3;
+//    testValue3.push_front("testfiles/movement.png");
+//    testMap["movement"] = testValue3;
+//
+//    std::deque<std::string> testValue4;
+//    testValue4.push_front("testfiles/xp.png");
+//    testMap["xp"] = testValue4;
+//
+//    std::deque<std::string> testValue5;
+//    testValue5.push_front("testfiles/difficulty_menu_easy.png");
+//    testValue5.push_front("testfiles/difficulty_menu_easy_1.png");
+//    testMap["difficulty_menu_easy"] = testValue5;
+//
+//    std::deque<std::string> testValue6;
+//    testValue6.push_front("testfiles/dragon_ball.png");
+//    testMap["dragon_ball"] = testValue6;
+//
+//    std::deque<std::string> testValue7;
+//    testValue7.push_front("testfiles/dragon_stone.png");
+//    testMap["dragon_stone"] = testValue7;
+//
+//    std::deque<std::string> testValue8;
+//    testValue8.push_front("testfiles/expand_box_accept.png");
+//    testMap["expand_box_accept"] = testValue8;
+//
+//    std::deque<std::string> testValue9;
+//    testValue9.push_front("testfiles/expand_box_confirm.png");
+//    testMap["expand_box_confirm"] = testValue9;
+//
+//    std::deque<std::string> testValue10;
+//    testValue10.push_front("testfiles/fr_choice_1.png");
+//    testMap["fr_choice"] = testValue10;
+//
+//    std::deque<std::string> testValue11;
+//    testValue11.push_front("testfiles/fr_ask.png");
+//    testMap["fr_ask"] = testValue11;
+//
+//    TemplateScanner tester(testMap, thresh);
+//    cv::Mat scannedTest;
+//    scannedTest = cv::imread("testfiles/current_screen.png");
+//    cout << tester.multithreaded_scan(scannedTest) << endl;
 
-    // Build Video Path
-    std::string videoPath = "mm.mp4";
-
-    // Start test
-    ThreadedVideoScan testScanner;
-    testScanner.runTest(testMap, videoPath, .7);
+//    // Build Test Map
+//    DescriptorToTemplatesMap testMap;
+//    std::deque<std::string> testImagePaths;
+//    testImagePaths.push_front("0.png");
+//    testMap["Jump"] = testImagePaths;
+//
+//    // Build Video Path
+//    std::string videoPath = "mm.mp4";
+//
+//    // Start test
+//    ThreadedVideoScan testScanner;
+//    testScanner.runTest(testMap, videoPath, .7);
 }
 
 
 
 BOOST_PYTHON_MODULE(templatescanners) {
     class_<TemplateScanner>("TemplateScanner", init<boost::python::dict, double>())
-            .def("scan", &TemplateScanner::scanPython);
+            .def("scan", &TemplateScanner::scanPython)
+            .def("multithreaded_scan", &TemplateScanner::multithreadedScanPython);
 
     class_<ThreadedVideoScan>("ThreadedVideoScan")
             .def("run", &ThreadedVideoScan::run);
