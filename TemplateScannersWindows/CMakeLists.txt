@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(PRIMEr)
+project(TemplateScanners)
 IF(MSVC)
     ADD_DEFINITIONS("/EHsc")
 ENDIF(MSVC)
