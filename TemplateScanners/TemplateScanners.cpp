@@ -41,12 +41,14 @@ public:
 
     TemplateScanner(const DescriptorToTemplatesMap &templatePaths) {
         templateMats = build_image_map(templatePaths, true);
+        templateThreshold = 0;
     }
 
     TemplateScanner(const DescriptorToTemplatesMap &templatePaths, TemplateToThresholdMap initThresholdMap) {
         templateMats = build_image_map(templatePaths, true);
         thresholdMap = initThresholdMap;
         orgThresholdMap = initThresholdMap;
+        templateThreshold = 0;
     }
 
     TemplateScanner(const boost::python::dict &templatePaths, double threshold) {
@@ -131,7 +133,7 @@ public:
         return maxVal;
     }
 
-    std::string get_best_match(const cv::Mat &image) {
+    std::string get_best_match_video(const cv::Mat &image) {
         std::map<std::string, double> positive;
         for (auto const& currentValues : templateMats) {
             std::string currentDescriptor = currentValues.first;
@@ -154,7 +156,7 @@ public:
                     if (currentDifference <= .03) {
                         if (thresholdMap[index] - currentDifference >= orgThresholdMap[index]/1.3 && thresholdMap[index] - currentDifference >= .6) {
                             thresholdMap[index] -= (currentDifference);
-                            cout << "This is the new probablity for " + currentDescriptor + std::to_string(TemplateIndex) << endl;
+                            cout << "This is the new probability for " + currentDescriptor + std::to_string(TemplateIndex) << endl;
                             cout << thresholdMap[index] << endl;
                         }
                     }
@@ -184,6 +186,53 @@ public:
         }
 
         else { return ""; }
+
+        // Gets rid of annoying compile warnings
+        return "";
+    }
+
+    std::string get_best_match_image(const cv::Mat &image) {
+        std::map<std::string, double> positive;
+        for (auto const& currentValues : templateMats) {
+            std::string currentDescriptor = currentValues.first;
+            std::deque<cv::Mat> currentImages = currentValues.second;
+
+            // Gets all matches above the threshold
+            double currentDescriptorMaxProbability = 0;
+            for (cv::Mat &currentImage: currentImages) {
+                double currentMaxProbability = match_template(image, currentImage, currentDescriptor, 0, cv::TM_CCOEFF_NORMED);
+                if (currentMaxProbability >= templateThreshold) {
+                    if (currentDescriptorMaxProbability < currentMaxProbability) {
+                        currentDescriptorMaxProbability = currentMaxProbability;
+                        positive[currentDescriptor] = currentDescriptorMaxProbability;
+                    }
+                }
+            }
+        }
+
+        // Finds best match above the threshold
+        if (positive.size() > 1) {
+            double mostProbableDescriptorValue = 0;
+            std::string mostProbableDescriptor;
+            for (auto const &currentMaxes : positive) {
+                std::string currentDescriptor = currentMaxes.first;
+                double currentDescriptorMaxValue = currentMaxes.second;
+                if (mostProbableDescriptorValue < currentDescriptorMaxValue) {
+                    mostProbableDescriptorValue = currentDescriptorMaxValue;
+                    mostProbableDescriptor = currentDescriptor;
+                }
+            }
+            return mostProbableDescriptor;
+        }
+
+        else if (positive.size() == 1) {
+            for (auto const &finalValue : positive) { return finalValue.first; }
+        }
+
+        else { return ""; }
+
+        // Gets rid of annoying compile warnings
+        return "";
     }
 
     std::map<std::string, double> get_best_prob_for_templates(cv::Mat image, std::deque<cv::Mat> templatesToMatch,
@@ -210,7 +259,7 @@ public:
         return returnMap;
     }
 
-    std::string get_best_match_multithread(cv::Mat image) {
+    std::string get_best_match_image_multithread(cv::Mat image) {
         std::deque<std::future<std::map<std::string, double>>> matches;
         for (auto const& currentValues : templateMats) {
             std::string currentDescriptor = currentValues.first;
@@ -237,12 +286,12 @@ public:
     }
 
     std::string scan(const cv::Mat &image) {
-        std::string currentMaxDescriptor = get_best_match(image);
+        std::string currentMaxDescriptor = get_best_match_video(image);
         return currentMaxDescriptor;
     }
 
     std::string multithreaded_scan(const cv::Mat &image) {
-        std::string currentMaxDescriptor = get_best_match_multithread(image);
+        std::string currentMaxDescriptor = get_best_match_image_multithread(image);
         return currentMaxDescriptor;
     }
 
@@ -251,7 +300,7 @@ public:
         std::string cPath = boost::python::extract<std::string>(imagePath);
         image = cv::imread(cPath);
         assert(!image.empty());
-        std::string currentMaxDescriptor = get_best_match_multithread(image);
+        std::string currentMaxDescriptor = get_best_match_image_multithread(image);
         boost::python::str returnValue(currentMaxDescriptor);
         return returnValue;
     }
@@ -261,7 +310,7 @@ public:
         std::string cPath = boost::python::extract<std::string>(imagePath);
         image = cv::imread(cPath);
         assert(!image.empty());
-        std::string currentMaxDescriptor = get_best_match(image);
+        std::string currentMaxDescriptor = get_best_match_image(image);
         boost::python::str returnValue(currentMaxDescriptor);
         return returnValue;
     }
@@ -286,12 +335,6 @@ public:
         video.set(cv::CAP_PROP_POS_FRAMES, frameIndexes[0]);
         double fps = video.get(cv::CAP_PROP_FPS);
 
-//        if (false) {
-//            double windowNumber = video.get(cv::CAP_PROP_POS_FRAMES);
-//            cv::namedWindow("Display window " + std::to_string(windowNumber),
-//                            WINDOW_AUTOSIZE);// Create a window for display.
-//        }
-
         while(true) {
             // Read the next frame
             cv::Mat currentFrame;
@@ -304,11 +347,6 @@ public:
                 std::string exportDescriptor = scan(grayFrame);
 
                 if (!exportDescriptor.empty()) {
-                    // Testing code for running from C++
-//                    if (false) {
-//                        cv::imshow("Display window " + std::to_string(windowNumber), currentFrame);
-//                        cv::waitKey(0);
-//                    }
                     cout << "EXPORTING : ";
                     cout << video.get(cv::CAP_PROP_POS_MSEC) / 1000 << endl;
                     cout << "EXPORTING : ";
