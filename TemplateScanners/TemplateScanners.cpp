@@ -79,6 +79,16 @@ public:
         return returnMap;
     }
 
+    void releaseTemplates() {
+        for (auto const& currentItems: templateMats) {
+            std::string currentDescriptor = currentItems.first;
+            std::deque<cv::Mat> images = currentItems.second;
+            for (cv::Mat &currentImage: images) {
+                currentImage.release(); 
+            }
+        }
+    }
+
     double match_template(cv::Mat image, cv::Mat templateToMatch, std::string descriptor,
             int templateIndex, int filterProcess) {
         cv::Mat result;
@@ -227,6 +237,7 @@ public:
         }
 
         video.release();
+        releaseTemplates();
         return timestamps;
     }
 };
