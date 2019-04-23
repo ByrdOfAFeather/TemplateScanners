@@ -12,15 +12,15 @@ include_directories(${Python3_INCLUDE_DIRS})
 
 #add_executable(PRIMEr main.cpp TemplateScanners.cpp)
 #target_link_libraries( PRIMEr ${OpenCV_LIBS} ${Boost_LIBRARIES} -lboost_python3 ${Python_LIBRARIES} -lpthread)
-add_library(templatescanners SHARED TemplateScanners.cpp)
-target_link_libraries( templatescanners ${OpenCV_LIBS} ${Boost_LIBRARIES} -lboost_python3 ${Python_LIBRARIES} -lpthread) # link OpenCV libraries , hightgui.so not found by cmake so this hack
+add_library(templatescannersbeta SHARED TemplateScanners.cpp)
+target_link_libraries( templatescannersbeta ${OpenCV_LIBS} ${Boost_LIBRARIES} -lboost_python3 ${Python_LIBRARIES} -lpthread) # link OpenCV libraries , hightgui.so not found by cmake so this hack
 
 
 set_target_properties(
-        templatescanners
+        templatescannersbeta
         PROPERTIES
         PREFIX ""
-        OUTPUT_NAME templatescanners
+        OUTPUT_NAME templatescannersbeta
         LINKER_LANGUAGE C
         LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin  # only needed on windows
@@ -30,7 +30,7 @@ set_target_properties(
 # installation
 
 install(
-        TARGETS templatescanners
+        TARGETS templatescannersbeta
         LIBRARY
         DESTINATION
         "/usr/local/lib/python3.6/dist-packages"
