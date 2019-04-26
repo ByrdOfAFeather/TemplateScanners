@@ -13,12 +13,16 @@ scanner = templatescanners.ThreadedVideoScan()
 #################
 # Threshold is an optional second parameter, if not passed, a adaptive threshold will be developed before scanning the entire video. 
 # The threshold should be between 0 and 1, anything below 0 will, for the most part, result in tagging everything, anything above one will always return nothing
-list_of_timestamps = scanner.run({"Name of Tempalte 1": ["path/to/image/describing/template/1", "path/to/image2/describing/template/1"]}, .8)
+list_of_timestamps = scanner.run({"Name of Tempalte 1": ["path/to/image/describing/template/1", 
+                                                        "path/to/image2/describing/template/1"]}, 
+                                                        "path/to/video", .8)
 
 ###### OR #######
 
 # This is what the call should look like if a threshold is not provided.
-list_of_timestamps = scanner.run_adaptive_threshold({"Name of Tempalte 1": ["path/to/image/describing/template/1", "path/to/image2/describing/template/1"]})
+list_of_timestamps = scanner.run_adaptive_threshold({"Name of Tempalte 1": ["path/to/image/describing/template/1", 
+                                                                            "path/to/image2/describing/template/1"]},
+                                                                            "path/to/video")
 #################
 
 

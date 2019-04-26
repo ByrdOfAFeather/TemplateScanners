@@ -70,7 +70,7 @@ public:
     }
 
     TemplateScanner(const DescriptorToTemplatesMap &templatePaths, double threshold) {
-        templateMats = build_image_map(templatePaths); 
+        templateMats = build_image_map(templatePaths, true); 
         templateThreshold = threshold; 
     }
 
@@ -203,8 +203,8 @@ public:
 
             // Gets all matches above the threshold
             double currentDescriptorMaxProbability = 0;
-            for (cv::Mat &currentImage: currentImages) {
-                double currentMaxProbability = match_template(image, currentImage, currentDescriptor, 0, cv::TM_CCOEFF_NORMED);
+            for (cv::Mat &currentImage: currentImages) { 
+                double currentMaxProbability = match_template(image, currentImage, currentDescriptor, 0, cv::TM_CCOEFF_NORMED); 
                 if (currentMaxProbability >= templateThreshold) {
                     if (currentDescriptorMaxProbability < currentMaxProbability) {
                         currentDescriptorMaxProbability = currentMaxProbability;
@@ -292,11 +292,11 @@ public:
     std::string scan(const cv::Mat &image, bool adaptiveThreshold = false) {
         std::string currentMaxDescriptor = ""; 
         if (adaptiveThreshold) { 
-            std::string currentMaxDescriptor = get_best_match_adaptive(image);
+            currentMaxDescriptor = get_best_match_adaptive(image);
         }
 
         else {
-            std::string currentMaxDescriptor = get_best_match_non_adaptive(image);
+            currentMaxDescriptor = get_best_match_non_adaptive(image);
         }
 
         return currentMaxDescriptor;
@@ -535,7 +535,8 @@ public:
     }
 
     VideoThreader(DescriptorToTemplatesMap initTemplatePaths, double threshold) {
-        threshold = threshold; 
+        templates = initTemplatePaths; 
+        templateThreshold = threshold; 
         thresholdExists = true; 
     }
 
